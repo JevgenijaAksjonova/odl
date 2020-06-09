@@ -1044,5 +1044,94 @@ def test_source_detector_shifts():
     check_shifts(ffs, shifts)
 
 
+def test_detector_transformations():
+    """ Tests projecting data from one detector to another
+    using interpolation.
+
+    Given 2 detectors C and F. If data is sampled from a smooth function,
+    projecting C -> F -> C must be close to an identity mapping.
+      """
+    # 1D, circular <-> flat
+    r = 3
+    part = odl.uniform_partition(-np.pi / 4, np.pi / 4, 21, nodes_on_bdry=True)
+    C = odl.tomo.CircularDetector(part, axis=[1, 0], radius=r)
+    F = odl.tomo.curved_to_flat(C)
+    C2 = odl.tomo.flat_to_curved(F, radius=r)
+    assert C.partition == C2.partition
+    assert C.radius == C2.radius
+    # take linear function
+    data0 = part.points().squeeze()
+    data1 = odl.tomo.project_data(data0, C, F)
+    data2 = odl.tomo.project_data(data1, F, C)
+    data3 = odl.tomo.project_data(data2, C, F)
+    assert all_almost_equal(data0, data2, 3)
+    assert all_almost_equal(data1, data3, 3)
+
+    # 2D, spherical <-> flat
+    r = 5
+    part = odl.uniform_partition([-np.pi / 4, -np.pi / 4],
+                                 [np.pi / 4, np.pi / 4],
+                                 (31, 31),
+                                 nodes_on_bdry=True)
+    S = odl.tomo.SphericalDetector(part, axes=[[1, 0, 0], [0, 0, 1]], radius=r)
+    F = odl.tomo.curved_to_flat(S)
+    S2 = odl.tomo.flat_to_curved(F, radius=(r, r))
+    # height is going to increase after projecting to flat detector and back
+    assert all_almost_equal(S.partition.meshgrid[0], S2.partition.meshgrid[0])
+    assert S.radius == S2.radius
+    # take linear function
+    data0 = np.sum(part.points(), axis=-1).reshape(part.shape)
+    data1 = odl.tomo.project_data(data0, S, F)
+    data2 = odl.tomo.project_data(data1, F, S)
+    data3 = odl.tomo.project_data(data2, S, F)
+    # there is some loss of energy at the upper and lower boundaries,
+    # even with nodes_on_bdry=True
+    # (since the boundary of a spherical detector is not a straight line,
+    # when projected on a flat detector), affects around 30% from each side
+    l = part.shape[1] // 3
+    u = part.shape[1] - l
+    assert all_almost_equal(data0[:, l:u], data2[:, l:u], 3)
+    assert all_almost_equal(data1[:, l:u], data3[:, l:u], 3)
+
+    # 2D, flat <-> cylindrical
+    C = odl.tomo.flat_to_curved(F, radius=r)
+    F2 = odl.tomo.curved_to_flat(C)
+    # height is going to increase after projecting to curved detector and back
+    assert all_almost_equal(F.partition.meshgrid[0], F2.partition.meshgrid[0])
+    data1 = odl.tomo.project_data(data0, F, C)
+    data2 = odl.tomo.project_data(data1, C, F)
+    data3 = odl.tomo.project_data(data2, F, C)
+    assert all_almost_equal(data0[:, l:u], data2[:, l:u], 3)
+    assert all_almost_equal(data1[:, l:u], data3[:, l:u], 3)
+
+    # 2D, spherical <-> cylindrical
+    data1 = odl.tomo.project_data(data0, S, C)
+    data2 = odl.tomo.project_data(data1, C, S)
+    data3 = odl.tomo.project_data(data2, S, C)
+    assert all_almost_equal(data0[:, l:u], data2[:, l:u], 3)
+    assert all_almost_equal(data1[:, l:u], data3[:, l:u], 3)
+
+    # testing in the context of tomography
+    if not odl.tomo.ASTRA_CUDA_AVAILABLE:
+        pytest.skip(msg='ASTRA_CUDA not available, skipping 3d test')
+
+    space = odl.uniform_discr([-1] * 3, [1] * 3, [10] * 3)
+    x = odl.phantom.shepp_logan(space)
+    apart = odl.uniform_partition(0, np.pi, 180)
+    dpart = odl.uniform_partition([-1, -1], [1, 1], (128, 32))
+    geom_flat = odl.tomo.ConeBeamGeometry(apart, dpart,
+                                          src_radius=1, det_radius=1)
+    curved_det = odl.tomo.flat_to_curved(geom_flat.detector, radius=30)
+    operator_flat = odl.tomo.RayTransform(space, geom_flat)
+    data_flat = operator_flat(x).asarray()
+    data_curved = odl.tomo.project_data(data_flat,
+                                        geom_flat.detector,
+                                        curved_det)
+    data_flat2 = odl.tomo.project_data(data_curved,
+                                       curved_det,
+                                       geom_flat.detector)
+    assert all_almost_equal(data_flat, data_flat2, 2)
+
+
 if __name__ == '__main__':
     odl.util.test_file(__file__)

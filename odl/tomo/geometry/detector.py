@@ -886,14 +886,14 @@ class CircularDetector(Detector):
     def __repr__(self):
         """Return ``repr(self)``."""
         posargs = [self.partition]
-        optargs = [('radius', array_str(self.center), '')]
+        optargs = [('axis', array_str(self.axis), ''),
+                   ('radius', array_str(self.radius), '')]
         inner_str = signature_string(posargs, optargs, sep=',\n')
         return '{}(\n{}\n)'.format(self.__class__.__name__, indent(inner_str))
 
     def __str__(self):
         """Return ``str(self)``."""
         return repr(self)
-
 
 class CylindricalDetector(Detector):
 
@@ -1142,7 +1142,8 @@ class CylindricalDetector(Detector):
     def __repr__(self):
         """Return ``repr(self)``."""
         posargs = [self.partition]
-        optargs = [('radius', array_str(self.center), '')]
+        optargs = [('axes', tuple(array_str(ax) for ax in self.axes), None),
+                   ('radius', array_str(self.radius), '')]
         inner_str = signature_string(posargs, optargs, sep=',\n')
         return '{}(\n{}\n)'.format(self.__class__.__name__, indent(inner_str))
 
@@ -1408,7 +1409,8 @@ class SphericalDetector(Detector):
     def __repr__(self):
         """Return ``repr(self)``."""
         posargs = [self.partition]
-        optargs = [('radius', array_str(self.center), '')]
+        optargs = [('axes', tuple(array_str(ax) for ax in self.axes), None),
+                   ('radius', array_str(self.radius), '')]
         inner_str = signature_string(posargs, optargs, sep=',\n')
         return '{}(\n{}\n)'.format(self.__class__.__name__, indent(inner_str))
 
