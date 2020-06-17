@@ -12,6 +12,8 @@ from __future__ import absolute_import
 
 from . import testutils
 from .utility import *
+from .detector_interpolation import *
 
 __all__ = ()
 __all__ += utility.__all__
+__all__ += detector_interpolation.__all__

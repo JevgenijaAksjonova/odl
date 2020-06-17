@@ -16,11 +16,13 @@ from .backends import (
     astra_conebeam_2d_geom_to_vec, astra_conebeam_3d_geom_to_vec)
 from .geometry import *
 from .operators import *
+from .util import detector_interpolation
 
 __all__ = ()
 __all__ += analytic.__all__
 __all__ += geometry.__all__
 __all__ += operators.__all__
+__all__ += detector_interpolation.__all__
 __all__ += (
     'ASTRA_AVAILABLE',
     'ASTRA_CUDA_AVAILABLE',

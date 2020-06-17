@@ -14,12 +14,7 @@ import numpy as np
 
 from odl.discr import uniform_partition
 from odl.discr.discr_utils import linear_interpolator
-from odl.tomo.geometry.detector import (Detector,
-                                        Flat1dDetector,
-                                        Flat2dDetector,
-                                        CircularDetector,
-                                        CylindricalDetector,
-                                        SphericalDetector)
+from odl.tomo.geometry.detector import *
 
 
 __all__ = ('flat_to_curved', 'curved_to_flat', 'project_data')

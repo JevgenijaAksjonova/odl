@@ -933,5 +933,24 @@ def test_helical_geometry_helper():
     assert geometry.det_partition.cell_sides[1] <= delta_h
 
 
+def test_detector_transformations():
+    """ Tests projecting data from one detector to another
+    using interpolation.
+
+    If data sampled on detector C is linear if projected on detector D,
+    then projecting it C -> D -> C is an identity mapping
+      """
+
+    # random linear coefficient
+    r = 3
+    part = odl.uniform_partition(-1, 1, 11)
+    C = odl.tomo.CircularDetector(part, axis=[1, 0], radius=r)
+    D = odl.tomo.detector_interpolation.curved_to_flat(C)
+    k = 10 * np.random.rand()
+    data0 = k * np.tan(1) * r
+    data1 = odl.tomo.detector_interpolation.project_data(data0, C, D)
+    data2 = odl.tomo.detector_interpolation.project_data(data1, D, C)
+
+
 if __name__ == '__main__':
     odl.util.test_file(__file__)
