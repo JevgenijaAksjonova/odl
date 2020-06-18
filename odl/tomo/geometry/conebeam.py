@@ -21,7 +21,7 @@ from odl.tomo.geometry.geometry import (
 from odl.tomo.util.utility import (
     euler_matrix, is_inside_bounds, transform_system)
 from odl.util import array_str, indent, signature_string
-from odl.tomo.util.source_detector_shifts import flying_focal_spot
+from odl.tomo.helpers.source_detector_shifts import flying_focal_spot
 
 __all__ = ('FanBeamGeometry', 'ConeBeamGeometry',
            'cone_beam_geometry', 'helical_geometry')

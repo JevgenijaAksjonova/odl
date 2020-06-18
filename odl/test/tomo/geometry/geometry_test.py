@@ -15,7 +15,7 @@ import numpy as np
 
 import odl
 from odl.util.testutils import all_almost_equal, all_equal, simple_fixture
-from odl.tomo.util.source_detector_shifts import flying_focal_spot
+from odl.tomo.helpers.source_detector_shifts import flying_focal_spot
 
 
 # --- pytest fixtures --- #
@@ -937,19 +937,91 @@ def test_detector_transformations():
     """ Tests projecting data from one detector to another
     using interpolation.
 
-    If data sampled on detector C is linear if projected on detector D,
-    then projecting it C -> D -> C is an identity mapping
+    Given 2 detectors C and D. If data is sampled from a smooth function,
+    projecting C -> F -> C must be close to an identity mapping.
       """
-
-    # random linear coefficient
+    # 1D, circular <-> flat
     r = 3
-    part = odl.uniform_partition(-1, 1, 11)
+    part = odl.uniform_partition(-np.pi / 4, np.pi / 4, 21, nodes_on_bdry=True)
     C = odl.tomo.CircularDetector(part, axis=[1, 0], radius=r)
-    D = odl.tomo.detector_interpolation.curved_to_flat(C)
-    k = 10 * np.random.rand()
-    data0 = k * np.tan(1) * r
-    data1 = odl.tomo.detector_interpolation.project_data(data0, C, D)
-    data2 = odl.tomo.detector_interpolation.project_data(data1, D, C)
+    F = odl.tomo.curved_to_flat(C)
+    C2 = odl.tomo.flat_to_curved(F, radius=r)
+    assert C.partition == C2.partition
+    assert C.radius == C2.radius
+    # take linear function
+    data0 = part.points().squeeze()
+    data1 = odl.tomo.project_data(data0, C, F)
+    data2 = odl.tomo.project_data(data1, F, C)
+    data3 = odl.tomo.project_data(data2, C, F)
+    assert all_almost_equal(data0, data2, 3)
+    assert all_almost_equal(data1, data3, 3)
+
+    # 2D, spherical <-> flat
+    r = 5
+    part = odl.uniform_partition([-np.pi / 4, -np.pi / 4],
+                                 [np.pi / 4, np.pi / 4],
+                                 (31, 31),
+                                 nodes_on_bdry=True)
+    S = odl.tomo.SphericalDetector(part, axes=[[1, 0, 0], [0, 0, 1]], radius=r)
+    F = odl.tomo.curved_to_flat(S)
+    S2 = odl.tomo.flat_to_curved(F, radius=(r, r))
+    # height is going to increase after projecting to flat detector and back
+    assert all_almost_equal(S.partition.meshgrid[0], S2.partition.meshgrid[0])
+    assert S.radius == S2.radius
+    # take linear function
+    data0 = np.sum(part.points(), axis=-1).reshape(part.shape)
+    data1 = odl.tomo.project_data(data0, S, F)
+    data2 = odl.tomo.project_data(data1, F, S)
+    data3 = odl.tomo.project_data(data2, S, F)
+    # there is some loss of energy at the upper and lower boundaries,
+    # even with nodes_on_bdry=True
+    # (since the boundary of a spherical detector is not a straight line,
+    # when projected on a flat detector), affects around 30% from each side
+    l = part.shape[1] // 3
+    u = part.shape[1] - l
+    assert all_almost_equal(data0[:, l:u], data2[:, l:u], 3)
+    assert all_almost_equal(data1[:, l:u], data3[:, l:u], 3)
+
+    # 2D, flat <-> cylindrical
+    C = odl.tomo.flat_to_curved(F, radius=r)
+    F2 = odl.tomo.curved_to_flat(C)
+    # height is going to increase after projecting to curved detector and back
+    assert all_almost_equal(F.partition.meshgrid[0], F2.partition.meshgrid[0])
+    data1 = odl.tomo.project_data(data0, F, C)
+    data2 = odl.tomo.project_data(data1, C, F)
+    data3 = odl.tomo.project_data(data2, F, C)
+    assert all_almost_equal(data0[:, l:u], data2[:, l:u], 3)
+    assert all_almost_equal(data1[:, l:u], data3[:, l:u], 3)
+
+    # 2D, spherical <-> cylindrical
+    data1 = odl.tomo.project_data(data0, S, C)
+    data2 = odl.tomo.project_data(data1, C, S)
+    data3 = odl.tomo.project_data(data2, S, C)
+    assert all_almost_equal(data0[:, l:u], data2[:, l:u], 3)
+    assert all_almost_equal(data1[:, l:u], data3[:, l:u], 3)
+
+    # providing multiple points in tomograhic context
+    space = odl.uniform_discr([-1] * 3, [1] * 3, [10] * 3)
+    x = odl.phantom.white_noise(space)
+    apart = odl.uniform_partition(0, np.pi, 180)
+    dpart = odl.uniform_partition([-1, -1], [1, 1], (128, 32))
+    geom_curved = odl.tomo.ConeBeamGeometry(apart, dpart,
+                                            src_radius=1, det_radius=1,
+                                            det_curvature_radius=(4,None))
+    geom_flat = odl.tomo.ConeBeamGeometry(apart, dpart,
+                                          src_radius=1, det_radius=1)
+    operator_curved = odl.tomo.RayTransform(space, geom_curved)
+    operator_flat = odl.tomo.RayTransform(space, geom_curved)
+    data_curved = operator_curved(x)
+    data_flat = operator_flat(x)
+    data_curved2 = odl.tomo.project_data(data_flat,
+                                         geom_flat.detector,
+                                         geom_curved.detector)
+    data_flat2 = odl.tomo.project_data(data_curved,
+                                       geom_curved.detector,
+                                       geom_flat.detector)
+    assert all_almost_equal(data_flat, data_flat2)
+    assert all_almost_equal(data_curved, data_curved2)
 
 
 if __name__ == '__main__':

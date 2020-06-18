@@ -14,7 +14,12 @@ import numpy as np
 
 from odl.discr import uniform_partition
 from odl.discr.discr_utils import linear_interpolator
-from odl.tomo.geometry.detector import *
+from odl.tomo.geometry.detector import (Detector,
+                                        Flat1dDetector,
+                                        Flat2dDetector,
+                                        CircularDetector,
+                                        CylindricalDetector,
+                                        SphericalDetector)
 
 
 __all__ = ('flat_to_curved', 'curved_to_flat', 'project_data')
@@ -426,6 +431,8 @@ def project_data(data, old_detector, new_detector):
             resampled_data = interpolator((i, phi, h))
         else:
             phi = np.repeat(phi, h.shape[1], axis=-1)
+            if h.shape[0] != phi.shape[0]:
+                h = np.repeat(h, phi.shape[0], axis=0)
             coord = np.stack([phi, h], axis=-1).reshape((-1, 2))
             resampled_data = interpolator(coord.T).reshape(
                 new_detector.partition.shape)
@@ -450,6 +457,8 @@ def project_data(data, old_detector, new_detector):
             resampled_data = interpolator((i, phi, theta))
         else:
             phi = np.repeat(phi, theta.shape[1], axis=-1)
+            if theta.shape[0] != phi.shape[0]:
+                theta = np.repeat(theta, phi.shape[0], axis=0)
             coord = np.stack([phi, theta], axis=-1).reshape((-1, 2))
             resampled_data = interpolator(coord.T).reshape(
                 new_detector.partition.shape)

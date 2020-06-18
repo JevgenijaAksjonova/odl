@@ -13,7 +13,7 @@ import numpy as np
 from odl.discr import uniform_discr_frompartition
 from odl.discr.discr_utils import nearest_interpolator
 
-__all__ = ('flying_focal_spot')
+__all__ = ('flying_focal_spot',)
 
 
 def flying_focal_spot(angle, apart, shifts):
