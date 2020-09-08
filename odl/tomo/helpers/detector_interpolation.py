@@ -91,7 +91,7 @@ def flat_to_curved(detector, radius):
 
     elif isinstance(detector, Flat2dDetector):
 
-        if radius.size == 1 or radius[1] == None or radius[1] == float('inf'):
+        if radius.size == 1 or radius[1] is None or radius[1] == float('inf'):
 
             if radius[0] <= 0:
                 raise ValueError('`radius` must be positive float')
@@ -173,7 +173,8 @@ def curved_to_flat(detector):
     >>> new_det = curved_to_flat(det)
     >>> new_det
     Flat2dDetector(
-        uniform_partition([-1.    , -1.4142], [ 1.    ,  1.4142], (3, 2), nodes_on_bdry=True),
+        uniform_partition([-1.    , -1.4142], [ 1.    ,  1.4142], (3, 2),
+            nodes_on_bdry=True),
         axes=('[ 1.,  0.,  0.]', '[ 0.,  0.,  1.]')
     )
     """

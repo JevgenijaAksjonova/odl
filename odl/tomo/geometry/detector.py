@@ -895,6 +895,7 @@ class CircularDetector(Detector):
         """Return ``str(self)``."""
         return repr(self)
 
+
 class CylindricalDetector(Detector):
 
     """A 2D detector on a cylindrical surface in 3D space.

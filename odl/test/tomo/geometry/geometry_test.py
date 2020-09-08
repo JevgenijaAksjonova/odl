@@ -820,8 +820,10 @@ def test_conebeam_source_detector_shifts():
 
     # However, detector can be shifted similarly as the source
     coef = det_rad / src_rad
+
     def det_shift(angle):
         return ffs(angle) * coef
+
     geom_ds = odl.tomo.ConeBeamGeometry(apart, dpart,
                                         src_rad, det_rad,
                                         src_to_det_init=init,
